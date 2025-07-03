@@ -1,668 +1,214 @@
-AI-Powered Outlook Email Automation with n8n
-This repository contains the complete configuration for a powerful email automation system built on a self-hosted n8n instance. The system automatically reads new Outlook emails, uses a Large Language Model (like Google's Gemini) to generate draft replies, sends an interactive notification to a Microsoft Teams channel for approval, and sends the email upon approval.
+Here's a clean, professional, and beautifully formatted version of your `README.md` that you can **copy and paste** directly into your GitHub repository:
 
-Features
-Automated AI Drafts: When a new email arrives in a specified Outlook inbox, the workflow triggers.
+---
 
-Intelligent Replies: Uses a Gemini language model to generate context-aware, professional email replies.
+```markdown
+# ✨ AI-Powered Outlook Email Automation with n8n
 
-Microsoft Teams Integration: Sends an interactive notification card to a Teams channel with the original email content and the AI-generated draft.
+This repository provides a complete automation stack using **n8n**, Microsoft Outlook, Microsoft Teams, and **Google Gemini** (or another LLM). It reads incoming Outlook emails, generates a professional AI-powered draft, sends it to Teams for approval, and sends the email after one-click confirmation.
 
-One-Click Approval: Allows for sending the email directly from Teams with an "Accept & Send" button or opening the draft in Outlook with an "Edit" button.
+---
 
-Self-Hosted & Secure: Runs on your own server using Docker, with traffic routed through Cloudflare for security and SSL.
+## 🚀 Features
 
-Conversation Memory: Remembers the context of an email thread for more accurate follow-up replies.
+- **Automated AI Drafts**: Auto-generates email replies using LLM when a new Outlook email arrives.
+- **Intelligent Replies**: Context-aware, business-grade replies using Gemini or OpenAI.
+- **Microsoft Teams Integration**: Sends an interactive adaptive card with the draft email.
+- **One-Click Approval**: Instantly send or edit the draft via Teams.
+- **Secure & Self-Hosted**: Dockerized deployment with Cloudflare SSL & reverse proxy.
+- **Conversation Memory**: Retains context for threaded conversations.
 
-Prerequisites
-Before you begin, ensure you have the following:
+---
 
-A server (VPS or dedicated) with Docker and Docker Compose installed.
+## ✅ Prerequisites
 
-A registered domain name.
+Make sure you have the following:
 
-A Cloudflare account to manage your domain's DNS.
+- A server (VPS or dedicated) with **Docker** & **Docker Compose**
+- A registered **domain name**
+- A **Cloudflare** account for DNS and SSL
+- A **Microsoft 365** account with admin access
+- An **API Key** for Google Gemini or OpenAI
 
-A Microsoft 365 account with administrative access to the Azure portal.
+---
 
-An API key for a Google Gemini (or another LLM like OpenAI).
+## 🛠️ Setup and Configuration
 
-Setup and Configuration
-Follow these steps to deploy and configure the entire automation stack.
+### Step 1: Server & Domain
 
-Step 1: Server and Domain Setup
-Point Your Domain: In your domain registrar or Cloudflare, create an A record for a subdomain (e.g., n8n.yourdomain.com) and point it to your server's IP address.
+- Create an A record (e.g. `n8n.yourdomain.com`) → Point to your server IP.
+- On Cloudflare, set **SSL/TLS** to **Full** or **Full (Strict)**.
 
-Cloudflare SSL: In your Cloudflare dashboard, ensure the SSL/TLS encryption mode is set to Full or Full (Strict).
+### Step 2: Deploy n8n with Docker
 
-Step 2: Self-Host n8n with Docker
-SSH into your server.
-
-Create a new directory for your n8n project and cd into it.
-
-mkdir n8n-automation
-cd n8n-automation
-
-Create a docker-compose.yml file and paste the content from the Configuration Files section below.
-
-Important: Edit the environment variables in the docker-compose.yml file to match your custom domain.
-
-environment:
-  - N8N_HOST=n8n.yourdomain.com
-  - N8N_PROTOCOL=https
-  - WEBHOOK_URL=https://n8n.yourdomain.com/
-  # ... other settings
-
-Start the n8n container:
-
+```bash
+mkdir n8n-automation && cd n8n-automation
+# Paste docker-compose.yml content here
 docker-compose up -d
+```
 
-This will download the n8n image and start it in the background.
+### Step 3: Setup Nginx Reverse Proxy
 
-Step 3: Configure Nginx as a Reverse Proxy
-Install Nginx on your server if it's not already installed.
-
-Create a new Nginx configuration file for your n8n instance.
-
+```bash
 sudo nano /etc/nginx/sites-available/n8n.conf
-
-Paste the Nginx configuration from the Configuration Files section below into this file.
-
-Important: Change server_name n8n.adplay-mobile.com; to server_name n8n.yourdomain.com;.
-
-Enable the site and restart Nginx.
-
+# Paste nginx config here, update domain
 sudo ln -s /etc/nginx/sites-available/n8n.conf /etc/nginx/sites-enabled/
-sudo nginx -t
-sudo systemctl restart nginx
+sudo nginx -t && sudo systemctl restart nginx
+```
 
-You should now be able to access your n8n instance at https://n8n.yourdomain.com.
+You can now access n8n at: `https://n8n.yourdomain.com`
 
-Step 4: Create Azure AD App for Microsoft Graph API
-To allow n8n to access Outlook and Teams, you must register an application in Microsoft Entra ID (Azure AD).
+---
 
-Log in to the Azure portal with an admin account.
+### Step 4: Azure App Registration
 
-Navigate to Microsoft Entra ID > App registrations and click + New registration.
+1. Go to [Azure Portal](https://portal.azure.com)
+2. Register a new App under **Microsoft Entra ID** → **App registrations**
+3. Redirect URI: `https://n8n.yourdomain.com/rest/oauth2-credential/callback`
+4. Get **Client ID** and **Client Secret**
+5. Add these **Microsoft Graph API** permissions:
+   - `Mail.ReadWrite`
+   - `Mail.Send`
+   - `User.Read`
+   - `offline_access`
+6. Grant Admin Consent.
 
-Name: n8n Email Automation (or similar).
+---
 
-Redirect URI: Select Web and enter your n8n callback URL: https://n8n.yourdomain.com/rest/oauth2-credential/callback
+### Step 5: Configure n8n Workflows
 
-Click Register.
+- Import the two workflows:
+  - `Outlook_Email_Draft_Teams_Alert.json`
+  - `Outlook_Email_Create_Send.json`
 
-Get Client ID: On the app's overview page, copy the Application (client) ID.
+- Set up credentials for:
+  - Microsoft Outlook (OAuth2)
+  - Microsoft Teams
+  - Google Gemini / OpenAI
 
-Create Client Secret: Go to Certificates & secrets, click + New client secret, and copy the secret Value immediately. It is only shown once.
+- Connect the webhook URL from `Send Approved Email` workflow into the Teams card in `AI Draft & Teams Alert`.
 
-Add API Permissions: Go to API permissions > + Add a permission > Microsoft Graph > Delegated permissions. Add the following permissions:
+- **Activate both workflows** – You're live!
 
-Mail.ReadWrite
+---
 
-Mail.Send
+## 🔄 Workflows
 
-offline_access
+### 1. **Outlook Email Draft + Teams Alert**
 
-User.Read (for basic profile info)
+- Triggers on new unread Outlook email.
+- Retrieves body and context.
+- Uses Gemini/OpenAI to generate a reply.
+- Creates a draft via Microsoft Graph API.
+- Sends Adaptive Card to Microsoft Teams with buttons:
+  - ✅ **Accept & Send**
+  - ✏️ **Edit in Outlook**
 
-Grant Admin Consent: Click the Grant admin consent for [Your Organization] button to approve the permissions.
+### 2. **Teams Action → Send Email**
 
-Step 5: Configure n8n Workflows
-This automation uses two workflows: one to process the email and create the draft, and a second to listen for the approval and send the email.
+- Triggered when the user clicks ✅ in Teams.
+- Sends the previously created draft via Microsoft Graph API.
 
-Import Workflows:
+---
 
-In your n8n instance, create two new blank workflows.
+## ⚙️ Configuration Files
 
-For each workflow, click the three dots (···) > "Import from file" and paste the corresponding JSON from the Workflows section below.
+### docker-compose.yml
 
-Configure Credentials:
-
-In both workflows, you will see nodes for Microsoft Outlook, Microsoft Teams, and Google Gemini. Click on each of these nodes.
-
-Create new credentials for each service, using the Azure App details (Client ID & Secret) for Outlook/Teams and your API key for Gemini.
-
-Connect the Workflows:
-
-Open the second workflow ("Teams Action: Send Approved Email"). Click on the Webhook node and copy its Production URL.
-
-Open the first workflow ("Outlook AI Draft & Teams Alert"). Find the Send Adaptive Card to Teams node.
-
-In the JSON parameter of this node, find the placeholder PASTE_YOUR_WEBHOOK_URL_HERE and replace it with the URL you just copied.
-
-Activate Workflows:
-
-Activate both workflows using the toggle switch at the top of the screen.
-
-Your automation is now live!
-
-Workflows
-1. Outlook_Email_Draft_Teams_Alert.json
-This workflow reads incoming emails, generates an AI reply, creates a draft, and sends an interactive alert to Microsoft Teams.
-
-{
-  "name": "Outlook AI Draft & Teams Alert",
-  "nodes": [
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "=https://graph.microsoft.com/v1.0/me/messages/{{$node[\"Microsoft Outlook Trigger\"].json[\"id\"]}}/createReply",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "microsoftOutlookOAuth2Api",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={\n  \"message\": {\n    \"body\": {\n      \"contentType\": \"HTML\",\n      \"content\": {{ JSON.stringify($node['AI Agent'].json.output) }}\n    }\n  }\n}",
-        "options": {
-          "response": {
-            "response": {
-              "neverError": true,
-              "responseFormat": "json"
-            }
-          }
-        }
-      },
-      "id": "15bfd425-a46f-4793-8534-d732d27e8d7c",
-      "name": "Create Reply Draft (HTTP)",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.1,
-      "position": [
-        1340,
-        -100
-      ]
-    },
-    {
-      "parameters": {
-        "sessionIdType": "customKey",
-        "sessionKey": "={{ $node['Microsoft Outlook Trigger'].json.conversationId }}"
-      },
-      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
-      "typeVersion": 1.3,
-      "position": [
-        1000,
-        120
-      ],
-      "id": "8fdeee3c-a1d8-4833-92c3-cbdefc48da07",
-      "name": "Simple Memory"
-    },
-    {
-      "parameters": {
-        "modelName": "models/gemini-1.5-flash",
-        "options": {
-          "maxOutputTokens": 1000,
-          "temperature": 0.7
-        }
-      },
-      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
-      "typeVersion": 1,
-      "position": [
-        840,
-        100
-      ],
-      "id": "2a909b89-1ef5-4f34-969a-48767d9598f1",
-      "name": "Google Gemini Chat Model"
-    },
-    {
-      "parameters": {
-        "promptType": "define",
-        "text": "=You are a professional and helpful business assistant. Based on the email below, please write a clear, concise, and polite email BODY for a reply. Do not include a subject line. Format the response as HTML with proper paragraph tags.\n\n---START OF ORIGINAL EMAIL---\nSubject: {{ $nodes['Microsoft Outlook Trigger'].json.subject }}\nFrom: {{ $nodes['Microsoft Outlook Trigger'].json.from.emailAddress.name }} ({{ $nodes['Microsoft Outlook Trigger'].json.from.emailAddress.address }})\nReceived: {{ $nodes['Microsoft Outlook Trigger'].json.receivedDateTime }}\n\nEmail Content:\n{{ $node['Get Email Body'].json.body.content || $node['Microsoft Outlook Trigger'].json.bodyPreview || 'No content available' }}\n---END OF ORIGINAL EMAIL---\n\nIMPORTANT: Before responding, verify that you have received the email content above. If the email content appears to be missing or blank, respond with a request for the sender to resend their message with more details.\n\nPlease provide a professional email response in HTML format. Use <p> tags for paragraphs and ensure the response is complete and ready to send. The response should be appropriate for the context and tone of the original email.",
-        "options": {
-          "systemMessage": "You are a professional email assistant. Always respond with well-formatted HTML content suitable for email replies. If an email appears to have no content, politely ask the sender to resend with more details rather than assuming it's blank."
-        }
-      },
-      "type": "@n8n/n8n-nodes-langchain.agent",
-      "typeVersion": 2,
-      "position": [
-        880,
-        -100
-      ],
-      "id": "4919cb23-a9cd-4142-b753-9ddbb248836e",
-      "name": "AI Agent"
-    },
-    {
-      "parameters": {
-        "resource": "adaptiveCard",
-        "teamId": "YOUR_TEAM_ID",
-        "channelId": "YOUR_CHANNEL_ID",
-        "json": "=\n{\n\t\"type\": \"AdaptiveCard\",\n\t\"$schema\": \"http://adaptivecards.io/schemas/adaptive-card.json\",\n\t\"version\": \"1.5\",\n\t\"body\": [\n\t\t{\n\t\t\t\"type\": \"Container\",\n\t\t\t\"style\": \"emphasis\",\n\t\t\t\"items\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"TextBlock\",\n\t\t\t\t\t\"text\": \"📧 New Email Received & AI Draft Generated\",\n\t\t\t\t\t\"weight\": \"Bolder\",\n\t\t\t\t\t\"size\": \"Medium\"\n\t\t\t\t}\n\t\t\t]\n\t\t},\n\t\t{\n\t\t\t\"type\": \"FactSet\",\n\t\t\t\"facts\": [\n\t\t\t\t{\n\t\t\t\t\t\"title\": \"From\",\n\t\t\t\t\t\"value\": \"{{ $node['Microsoft Outlook Trigger'].json.from?.emailAddress?.address ?? 'System Notification' }}\"\n\t\t\t\t},\n\t\t\t\t{\n\t\t\t\t\t\"title\": \"Subject\",\n\t\t\t\t\t\"value\": \"{{ $node['Microsoft Outlook Trigger'].json.subject }}\"\n\t\t\t\t},\n\t\t\t\t{\n\t\t\t\t\t\"title\": \"Received\",\n\t\t\t\t\t\"value\": \"{{ $node['Microsoft Outlook Trigger'].json.receivedDateTime ? new Date($node['Microsoft Outlook Trigger'].json.receivedDateTime).toLocaleString('en-US', { timeZone: 'Asia/Dhaka' }) : 'Date Not Available' }} (BST)\"\n\t\t\t\t}\n\t\t\t]\n\t\t},\n\t\t{\n\t\t\t\"type\": \"TextBlock\",\n\t\t\t\"text\": \"🤖 **AI-Generated Reply Draft:**\",\n\t\t\t\"wrap\": true,\n\t\t\t\"weight\": \"Bolder\"\n\t\t},\n\t\t{\n\t\t\t\"type\": \"RichTextBlock\",\n\t\t\t\"inlines\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"TextRun\",\n\t\t\t\t\t\"text\": \"{{ $node['AI Agent'].json.output }}\"\n\t\t\t\t}\n\t\t\t]\n\t\t}\n\t],\n\t\"actions\": [\n\t\t{\n\t\t\t\"type\": \"Action.Http\",\n\t\t\t\"title\": \"✅ Accept & Send\",\n\t\t\t\"method\": \"POST\",\n\t\t\t\"url\": \"PASTE_YOUR_WEBHOOK_URL_HERE\",\n\t\t\t\"body\": \"{ \\\"draftId\\\": \\\"{{ $node['Create Reply Draft (HTTP)'].json.id }}\\\" }\",\n\t\t\t\"style\": \"positive\"\n\t\t},\n\t\t{\n\t\t\t\"type\": \"Action.OpenUrl\",\n\t\t\t\"title\": \"✏️ Edit in Outlook\",\n\t\t\t\"url\": \"{{ $node['Create Reply Draft (HTTP)'].json.webLink }}\"\n\t\t}\n\t]\n}",
-        "options": {}
-      },
-      "id": "bac79384-ce90-45e9-8cb1-f894f03e6e56",
-      "name": "Send Adaptive Card to Teams",
-      "type": "n8n-nodes-base.microsoftTeams",
-      "typeVersion": 2,
-      "position": [
-        1560,
-        -100
-      ]
-    },
-    {
-      "parameters": {
-        "pollTimes": {
-          "item": [
-            {
-              "mode": "everyMinute"
-            }
-          ]
-        },
-        "filters": {
-          "readStatus": "unread"
-        },
-        "options": {
-          "downloadAttachments": false
-        }
-      },
-      "type": "n8n-nodes-base.microsoftOutlookTrigger",
-      "typeVersion": 1,
-      "position": [
-        460,
-        -100
-      ],
-      "id": "30d3b380-b9b6-4b5d-a282-9fd6ef6657b4",
-      "name": "Microsoft Outlook Trigger"
-    },
-    {
-      "parameters": {
-        "url": "=https://graph.microsoft.com/v1.0/me/messages/{{$node[\"Microsoft Outlook Trigger\"].json[\"id\"]}}?$select=body",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "microsoftOutlookOAuth2Api",
-        "options": {
-          "response": {
-            "response": {
-              "neverError": true,
-              "responseFormat": "json"
-            }
-          }
-        }
-      },
-      "id": "47db264a-ad4a-4656-817a-2db3ccbe2ed4",
-      "name": "Get Email Body",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.1,
-      "position": [
-        680,
-        -100
-      ]
-    }
-  ],
-  "connections": {
-    "Simple Memory": {
-      "ai_memory": [
-        [
-          {
-            "node": "AI Agent",
-            "type": "ai_memory",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Google Gemini Chat Model": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "AI Agent",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "AI Agent": {
-      "main": [
-        [
-          {
-            "node": "Create Reply Draft (HTTP)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Create Reply Draft (HTTP)": {
-      "main": [
-        [
-          {
-            "node": "Send Adaptive Card to Teams",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Microsoft Outlook Trigger": {
-      "main": [
-        [
-          {
-            "node": "Get Email Body",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Get Email Body": {
-      "main": [
-        [
-          {
-            "node": "AI Agent",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    }
-  }
-}
-
-2. Outlook_Email_Create_Send.json (Webhook)
-This workflow listens for the "Accept & Send" action from Teams and sends the corresponding draft email.
-
-{
-  "name": "Teams Action: Send Approved Email",
-  "nodes": [
-    {
-      "parameters": {},
-      "id": "19b88f34-8c17-4581-8b38-65158e08d248",
-      "name": "Listen for 'Accept' Click",
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 1,
-      "position": [
-        20,
-        220
-      ],
-      "webhookId": "YOUR_WEBHOOK_ID_WILL_BE_GENERATED_HERE"
-    },
-    {
-      "parameters": {
-        "url": "={{ `https://graph.microsoft.com/v1.0/me/messages/${$json.body.draftId}/send` }}",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "microsoftOutlookOAuth2Api",
-        "options": {}
-      },
-      "id": "2701f5ae-7b6c-4b5a-935f-15579f168ac1",
-      "name": "Send the Draft Email",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.1,
-      "position": [
-        260,
-        220
-      ]
-    }
-  ],
-  "connections": {
-    "Listen for 'Accept' Click": {
-      "main": [
-        [
-          {
-            "node": "Send the Draft Email",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    }
-  }
-}
-
-Configuration Files
-docker-compose.yml
+```yaml
 services:
   n8n:
     image: n8nio/n8n
     restart: unless-stopped
     ports:
-      # Expose n8n on port 5678, but only accessible from the host server itself (localhost).
       - "127.0.0.1:5678:5678"
     environment:
-      # --- SETTINGS FOR NGINX REVERSE PROXY ---
       - N8N_HOST=n8n.yourdomain.com
       - N8N_PROTOCOL=https
       - WEBHOOK_URL=https://n8n.yourdomain.com/
-
-      # --- RECOMMENDED SETTINGS ---
       - GENERIC_TIMEZONE=Asia/Dhaka
-
-      # === INCREASE NODE.JS MEMORY LIMIT ===
-      # This allows the n8n process to use up to 4GB of RAM, preventing crashes.
       - NODE_OPTIONS=--max-old-space-size=4096
-
-      # === TASK RUNNERS (RECOMMENDED) ===
-      # Enable task runners to avoid deprecation warnings and improve performance
       - N8N_RUNNERS_ENABLED=true
-
-      # === FILE PERMISSIONS ===
-      # Automatically enforce correct file permissions
       - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
-
-      # === CONNECTION SETTINGS ===
-      # Improve WebSocket connection stability
       - N8N_PUSH_BACKEND=websocket
-      - N8N_DISABLE_UI=false
-
     volumes:
-      # Creates a persistent volume to store all your n8n data
       - n8n_data:/home/node/.n8n
 
 volumes:
   n8n_data:
+```
 
-nginx.conf
+---
+
+### nginx.conf
+
+```nginx
 server {
     listen 80;
-    listen [::]:80;
-
     server_name n8n.yourdomain.com;
 
     location / {
         proxy_pass http://localhost:5678;
-        proxy_set_header Connection '';
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_http_version 1.1;
-        proxy_buffering off;
-
-        # === PROXY TIMEOUTS ===
-        proxy_connect_timeout 300s;
-        proxy_read_timeout 300s;
-        proxy_send_timeout 300s;
-
-        chunked_transfer_encoding off;
-    }
-
-    # === WEBSOCKET SUPPORT FOR n8n ===
-    location /rest/push {
-        proxy_pass http://localhost:5678;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
         proxy_read_timeout 86400;
     }
 }
+```
 
+---
 
+## 🧠 Example Prompt to Gemini / OpenAI
 
-Guide: Generating Microsoft Outlook API Credentials
-To get the Client ID and Client Secret, you need to perform these steps in the Microsoft Azure portal.
+```text
+You are a professional and helpful business assistant. Please read the following email and write a clear, concise, and polite reply. Format the response in HTML with proper <p> tags.
 
-Start by logging into: https://portal.azure.com with your Microsoft 365 administrator account.
+Subject: {{ $node["Microsoft Outlook Trigger"].json.subject }}
+From: {{ $node["Microsoft Outlook Trigger"].json.from.emailAddress.address }}
 
-Step 1: Register a New Application
-In the Azure portal search bar, type Microsoft Entra ID and select it. (This was formerly called Azure Active Directory).
-
-From the left-hand menu, select App registrations.
-
-Click on the + New registration button.
-
-On the "Register an application" page, fill out the form:
-
-Name: Give it a descriptive name, like n8n Email Automation.
-
-Supported account types: Choose the option that best fits your organization. "Accounts in this organizational directory only" is usually the correct choice for a business account.
-
-Redirect URI (Very Important):
-
-Select Web from the dropdown menu.
-
-Go back to the n8n pop-up window in your other tab. Copy the URL from the OAuth Redirect URL field. It should be in the format: https://n8n.yourdomain.com/rest/oauth2-credential/callback
-
-Paste this URL into the text box in Azure.
-
-Click the Register button at the bottom.
-
-Step 2: Get the Client ID
-After the application is created, you will be taken to its "Overview" page.
-
-You will see an Application (client) ID. This is your Client ID.
-
-Click the copy icon next to it and paste it into the Client ID field back in the n8n window.
-
-Step 3: Create the Client Secret
-While still on your app's page in Azure, select Certificates & secrets from the left-hand menu.
-
-Click on + New client secret.
-
-A pane will appear on the right:
-
-Description: Give it a name like n8n_secret.
-
-Expires: For better security, select a duration like 12 months.
-
-Click Add.
-
-THIS IS THE MOST IMPORTANT STEP! A new secret will be created. The Value of the secret will be displayed only once.
-
-Copy the secret Value immediately (NOT the Secret ID). Paste this into the Client Secret field back in the n8n window.
-
-Step 4: Add API Permissions
-You must tell Microsoft what n8n is allowed to do.
-
-From the left-hand menu, select API permissions.
-
-Click on + Add a permission.
-
-Select Microsoft Graph.
-
-Choose Delegated permissions.
-
-Use the search box to find and check the boxes for the following permissions:
-
-Mail.ReadWrite (Allows reading, creating, and updating emails/drafts)
-
-Mail.Send (Allows sending emails on your behalf)
-
-offline_access (Allows n8n to work when you are not logged in)
-
-Click the Add permissions button at the bottom.
-
-Finally, on the API permissions screen, click the Grant admin consent for [Your Organization] button and confirm. This applies the permissions for your users.
-
-Step 5: Finalize the Connection in n8n
-Go back to the n8n window. You should have already pasted the Client ID and Client Secret.
-
-Click the Save button in the top right of the pop-up.
-
-A new Microsoft login window should appear. Log in with the email account you want to automate.
-
-You will be asked to consent to the permissions you just configured in Azure. Click Accept.
-
-If everything was done correctly, the pop-up will close and your credential will be created and selected in the Microsoft Outlook node.
-
-Guide: Building the AI Email Response & Approval Workflow
-Part 1: The "Create & Approve" Workflow
-This workflow will handle the initial email processing and draft creation.
-
-Create a New Workflow
-
-Log in to your n8n instance (e.g., https://n8n.yourdomain.com).
-
-Click "Add workflow" to start with a blank canvas.
-
-The Trigger: On New Email
-
-Click the + button to add the first node.
-
-Search for Microsoft Outlook and select it.
-
-Authentication: Connect your Microsoft account using the credentials you created.
-
-Event: Choose On New Email.
-
-Folder: Select the folder you want to monitor, typically Inbox.
-
-Fetch Test Event: Click this button to pull in a recent email as sample data. This is crucial for the next steps.
-
-The AI Brain: Generate Reply
-
-Add a new node (e.g., Google Gemini or OpenAI).
-
-Authentication: Connect your AI provider account by providing your API key.
-
-Model: Select a model, such as gemini-1.5-flash or gpt-4o.
-
-Prompt: In the text field, write a prompt for the AI. Use expressions to pull data from the trigger node. Example:
-
-You are a professional and helpful business assistant. Please read the following email and write a clear, concise, and polite draft reply.
-
-Original Email Subject: {{ $nodes["Microsoft Outlook Trigger"].json.subject }} Original Email From: {{ $nodes["Microsoft Outlook Trigger"].json.from.emailAddress.name }} <{{ $nodes["Microsoft Outlook Trigger"].json.from.emailAddress.address }}> Original Email Content:
+Content:
 {{ $node["Get Email Body"].json.body.content }}
-Draft your reply below:
+```
 
-The Action: Create a Draft Email
+---
 
-Add an HTTP Request node.
+## 📬 Adaptive Card Preview (Microsoft Teams)
 
-Method: POST
+| Action | Description |
+|-------|-------------|
+| ✅ Accept & Send | Instantly sends draft reply |
+| ✏️ Edit in Outlook | Opens the draft in Outlook for manual review |
 
-URL: https://graph.microsoft.com/v1.0/me/messages/{{$node["Microsoft Outlook Trigger"].json.id}}/createReply
+> The card also shows original sender, subject, time received, and AI-generated content.
 
-Body: Configure a JSON body to set the contentType to HTML and the content to the output from your AI node.
+---
 
-The Final Step: Send Approval Request to Teams
+## ✅ Final Notes
 
-Add a Microsoft Teams node.
+- All communication happens securely via HTTPS and OAuth2.
+- All workflows are fully modular – adapt or expand as needed.
+- You can enhance this further by storing conversation history or connecting to a CRM.
 
-Resource: Adaptive Card.
+---
 
-JSON: Paste the Adaptive Card JSON from the main README.md file. This card will contain the draft and the approval buttons.
+## 📷 Screenshots
 
-Activate and Save your workflow!
+You can include the screenshots you uploaded (`cdee...png`, `0dc...png`) right here:
 
-Part 2: The "Send Approved Email" Workflow
-This workflow is much simpler. It waits for the manager's action from Teams.
+```markdown
+![Workflow Overview](./cdee3477-2195-43a4-88f9-30d7837ee4ab.png)
+![Teams Adaptive Card](./0dcdb7b4-8a2a-4a48-a78c-e27f3ca4b43f.png)
+```
 
-Create a Second Workflow
+---
 
-Go back to the main n8n dashboard and click "Add workflow".
+> Made with 💙 using [n8n.io](https://n8n.io) and the power of AI.
+```
 
-The Trigger: Webhook
+---
 
-Add a Webhook node. This will create a unique URL.
-
-This URL is what the "Accept & Send" button in Teams will call.
-
-The Action: Send the Draft
-
-Add an HTTP Request node after the trigger.
-
-Authentication: Use the same Microsoft credentials.
-
-Method: POST.
-
-URL: Use an expression to target the send endpoint with the Draft ID received by the webhook: https://graph.microsoft.com/v1.0/me/messages/{{$json.body.draftId}}/send
-
-Activate and Save this workflow. Your two-part automation is now complete!
+Let me know if you want this customized further (e.g., add contributor badges, licensing info, or usage instructions).
