@@ -1,0 +1,300 @@
+{
+  "name": "My workflow 3",
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.microsoft.com/v1.0/me/messages/{{$node[\"Microsoft Outlook Trigger\"].json[\"id\"]}}/createReply",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "microsoftOutlookOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"message\": {\n    \"body\": {\n      \"contentType\": \"HTML\",\n      \"content\": {{ JSON.stringify($node['AI Agent'].json.output) }}\n    }\n  }\n}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "15bfd425-a46f-4793-8534-d732d27e8d7c",
+      "name": "Create Reply Draft (HTTP)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1340,
+        -100
+      ],
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "zD6xvRsCjtNJMbz4",
+          "name": "Microsoft Outlook account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $node['Microsoft Outlook Trigger'].json.conversationId }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        1000,
+        120
+      ],
+      "id": "8fdeee3c-a1d8-4833-92c3-cbdefc48da07",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-1.5-flash",
+        "options": {
+          "maxOutputTokens": 1000,
+          "temperature": 0.7
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        840,
+        100
+      ],
+      "id": "2a909b89-1ef5-4f34-969a-48767d9598f1",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "G3I8foj4J8B1Hirh",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a professional and helpful business assistant. Based on the email below, please write a clear, concise, and polite email BODY for a reply. Do not include a subject line. Format the response as HTML with proper paragraph tags.\n\n---START OF ORIGINAL EMAIL---\nSubject: {{ $nodes['Microsoft Outlook Trigger'].json.subject }}\nFrom: {{ $nodes['Microsoft Outlook Trigger'].json.from.emailAddress.name }} ({{ $nodes['Microsoft Outlook Trigger'].json.from.emailAddress.address }})\nReceived: {{ $nodes['Microsoft Outlook Trigger'].json.receivedDateTime }}\n\nEmail Content:\n{{ $node['Get Email Body'].json.body.content || $node['Microsoft Outlook Trigger'].json.bodyPreview || 'No content available' }}\n---END OF ORIGINAL EMAIL---\n\nIMPORTANT: Before responding, verify that you have received the email content above. If the email content appears to be missing or blank, respond with a request for the sender to resend their message with more details.\n\nPlease provide a professional email response in HTML format. Use <p> tags for paragraphs and ensure the response is complete and ready to send. The response should be appropriate for the context and tone of the original email.",
+        "options": {
+          "systemMessage": "You are a professional email assistant. Always respond with well-formatted HTML content suitable for email replies. If an email appears to have no content, politely ask the sender to resend with more details rather than assuming it's blank."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        880,
+        -100
+      ],
+      "id": "4919cb23-a9cd-4142-b753-9ddbb248836e",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "resource": "channelMessage",
+        "teamId": {
+          "__rl": true,
+          "value": "c35e6e69-3aa9-4b82-82af-d651779f9c48",
+          "mode": "list",
+          "cachedResultName": "Email Automation"
+        },
+        "channelId": {
+          "__rl": true,
+          "value": "19:ixreoitoMb0Mb-IDOobT2WQGflm2Di1QjJqGY_AgAoo1@thread.tacv2",
+          "mode": "list",
+          "cachedResultName": "Email Automation",
+          "cachedResultUrl": "https://teams.cloud.microsoft/l/channel/19%3AixreoitoMb0Mb-IDOobT2WQGflm2Di1QjJqGY_AgAoo1%40thread.tacv2/Email%20Automation?groupId=c35e6e69-3aa9-4b82-82af-d651779f9c48&tenantId=a2f39b5a-757d-4d46-aa69-e72ed0bc4884&allowXTenantAccess=True&ngc=True"
+        },
+        "message": "=<h2>📧 New Email Received & AI Draft Generated</h2>\n<hr>\n\n<h3>Incoming Email Details</h3>\n<strong>From:</strong> {{ $node['Microsoft Outlook Trigger'].json.from?.emailAddress?.address ?? 'System Notification' }}<br>\n<strong>Subject:</strong> {{ $node['Microsoft Outlook Trigger'].json.subject }}<br>\n<strong>Received:</strong> {{ $node['Microsoft Outlook Trigger'].json.receivedDateTime ? new Date($node['Microsoft Outlook Trigger'].json.receivedDateTime).toLocaleString('en-US', { timeZone: 'Asia/Dhaka' }) : 'Date Not Available' }} (Bangladesh Time)<br>\n\n<br>\n\n<h3>Original Email Preview</h3>\n<blockquote>\n  <i>{{ ($node['Get Email Body'].json.body.content || $node['Microsoft Outlook Trigger'].json.bodyPreview || 'No content').substring(0, 300) }}{{ ($node['Get Email Body'].json.body.content || $node['Microsoft Outlook Trigger'].json.bodyPreview || '').length > 300 ? '...' : '' }}</i>\n</blockquote>\n\n<br>\n\n<h3>🤖 AI-Generated Reply Draft</h3>\n<blockquote>\n  {{ $node['AI Agent'].json.output }}\n</blockquote>\n\n<hr>\n<strong>Draft Status:</strong> ✅ Successfully created in Outlook Drafts folder<br>\n\n<h3>Actions</h3>\n<ul>\n  <li><a href=\"https://outlook.office.com/mail/drafts\">Open Outlook Drafts Folder</a></li>\n  <li><a href=\"{{ $node['Microsoft Outlook Trigger'].json.webLink }}\">View Original Email in Outlook</a></li>\n</ul>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftTeams",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        -100
+      ],
+      "id": "bac79384-ce90-45e9-8cb1-f894f03e6e56",
+      "name": "Teams Notification",
+      "webhookId": "7fee85e7-6043-4bb4-acec-ae27cf13ac14",
+      "credentials": {
+        "microsoftTeamsOAuth2Api": {
+          "id": "FmI9200LKv21WhUo",
+          "name": "Microsoft Teams account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {
+          "readStatus": "unread"
+        },
+        "options": {
+          "downloadAttachments": false
+        }
+      },
+      "type": "n8n-nodes-base.microsoftOutlookTrigger",
+      "typeVersion": 1,
+      "position": [
+        460,
+        -100
+      ],
+      "id": "30d3b380-b9b6-4b5d-a282-9fd6ef6657b4",
+      "name": "Microsoft Outlook Trigger",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "zD6xvRsCjtNJMbz4",
+          "name": "Microsoft Outlook account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://graph.microsoft.com/v1.0/me/messages/{{$node[\"Microsoft Outlook Trigger\"].json[\"id\"]}}?$select=body",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "microsoftOutlookOAuth2Api",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "47db264a-ad4a-4656-817a-2db3ccbe2ed4",
+      "name": "Get Email Body",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        680,
+        -100
+      ],
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "zD6xvRsCjtNJMbz4",
+          "name": "Microsoft Outlook account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.2,
+      "position": [
+        1180,
+        -100
+      ],
+      "id": "4d265c2f-b60d-4392-9670-230394fe3e4d",
+      "name": "Debug Data"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Debug Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Debug Data": {
+      "main": [
+        [
+          {
+            "node": "Create Reply Draft (HTTP)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Reply Draft (HTTP)": {
+      "main": [
+        [
+          {
+            "node": "Teams Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Microsoft Outlook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Email Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Email Body": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "b67581e2-4274-449f-8fa4-b4871a3619b2",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8e2e038042980b89138548e533d256c47e1af917e4780c159e469c755c4803be"
+  },
+  "id": "tILswLo4OzEIQ4oZ",
+  "tags": []
+}

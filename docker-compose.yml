@@ -1,0 +1,39 @@
+services:
+  n8n:
+    image: n8nio/n8n
+    restart: unless-stopped
+    ports:
+      # Expose n8n on port 5678, but only accessible from the host server itself (localhost).
+      - "127.0.0.1:5678:5678"
+    environment:
+      # --- SETTINGS FOR NGINX REVERSE PROXY ---
+      - N8N_HOST=n8n.adplay-mobile.com
+      - N8N_PROTOCOL=https
+      - WEBHOOK_URL=https://n8n.adplay-mobile.com/
+
+      # --- RECOMMENDED SETTINGS ---
+      - GENERIC_TIMEZONE=Asia/Dhaka
+      
+      # === INCREASE NODE.JS MEMORY LIMIT ===
+      # This allows the n8n process to use up to 4GB of RAM, preventing crashes.
+      - NODE_OPTIONS=--max-old-space-size=4096
+
+      # === TASK RUNNERS (RECOMMENDED) ===
+      # Enable task runners to avoid deprecation warnings and improve performance
+      - N8N_RUNNERS_ENABLED=true
+
+      # === FILE PERMISSIONS ===
+      # Automatically enforce correct file permissions
+      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
+
+      # === CONNECTION SETTINGS ===
+      # Improve WebSocket connection stability
+      - N8N_PUSH_BACKEND=websocket
+      - N8N_DISABLE_UI=false
+
+    volumes:
+      # Creates a persistent volume to store all your n8n data
+      - n8n_data:/home/node/.n8n
+
+volumes:
+  n8n_data:

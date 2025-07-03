@@ -1,0 +1,160 @@
+{
+  "name": "n8n",
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "On clicking 'execute'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "position": [
+        380,
+        180
+      ],
+      "typeVersion": 1,
+      "id": "d407beee-cc0f-4fd7-9279-cf0a991a3633"
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "Hello from n8n!",
+        "bodyContent": "<h1>Hello from n8n!</h1> <p>We are sending this email using the Microsoft Outlook node in <a href=\"https://n8n.io\">n8n</a></p> <p>Best,</p> <p>Sender</p>",
+        "additionalFields": {
+          "bodyContentType": "html"
+        }
+      },
+      "name": "Microsoft Outlook",
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "position": [
+        580,
+        180
+      ],
+      "typeVersion": 1,
+      "id": "4c61fd95-fed4-4533-9ef8-ed19f74959fa",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": null,
+          "name": "Micrsoft Outlook Credentials"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://n8n.io/n8n-logo.png",
+        "responseFormat": "file",
+        "options": {}
+      },
+      "name": "HTTP Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        780,
+        180
+      ],
+      "typeVersion": 1,
+      "id": "a026e681-e40d-4ef1-aa62-dc4da3757fd6"
+    },
+    {
+      "parameters": {
+        "resource": "messageAttachment",
+        "messageId": "={{$node[\"Microsoft Outlook\"].json[\"id\"]}}",
+        "additionalFields": {
+          "fileName": "n8n.png"
+        }
+      },
+      "name": "Microsoft Outlook1",
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "position": [
+        980,
+        180
+      ],
+      "typeVersion": 1,
+      "id": "c48992e8-ee45-412c-8f40-8133029a7e0b",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": null,
+          "name": "Micrsoft Outlook Credentials"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "operation": "send",
+        "messageId": "={{$node[\"Microsoft Outlook\"].json[\"id\"]}}",
+        "additionalFields": {
+          "recipients": "abc@example.com"
+        }
+      },
+      "name": "Microsoft Outlook2",
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "position": [
+        1180,
+        180
+      ],
+      "typeVersion": 1,
+      "id": "a4a4d8f4-5e7c-4653-976e-42d17cbcabe5",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": null,
+          "name": "Micrsoft Outlook Credentials"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Microsoft Outlook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Microsoft Outlook": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Microsoft Outlook1": {
+      "main": [
+        [
+          {
+            "node": "Microsoft Outlook2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "On clicking 'execute'": {
+      "main": [
+        [
+          {
+            "node": "Microsoft Outlook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "ae66f566-aad1-4251-8eb2-3bc8ea30b64c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8e2e038042980b89138548e533d256c47e1af917e4780c159e469c755c4803be"
+  },
+  "id": "k0HVPWFVEywHjoRy",
+  "tags": []
+}
