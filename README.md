@@ -1,6 +1,4 @@
-Here's a clean, professional, and beautifully formatted version of your `README.md` that you can **copy and paste** directly into your GitHub repository:
 
----
 
 ```markdown
 # ✨ AI-Powered Outlook Email Automation with n8n
@@ -195,20 +193,8 @@ Content:
 
 ---
 
-## 📷 Screenshots
-
-You can include the screenshots you uploaded (`cdee...png`, `0dc...png`) right here:
-
-```markdown
-![Workflow Overview](./cdee3477-2195-43a4-88f9-30d7837ee4ab.png)
-![Teams Adaptive Card](./0dcdb7b4-8a2a-4a48-a78c-e27f3ca4b43f.png)
-```
 
 ---
 
 > Made with 💙 using [n8n.io](https://n8n.io) and the power of AI.
 ```
-
----
-
-Let me know if you want this customized further (e.g., add contributor badges, licensing info, or usage instructions).
