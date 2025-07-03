@@ -1,4 +1,4 @@
-AI-Powered Outlook Email Automation with n8n and Microsoft Teams
+AI-Powered Outlook Email Automation with n8n
 This repository contains the complete configuration for a powerful email automation system built on a self-hosted n8n instance. The system automatically reads new Outlook emails, uses a Large Language Model (like Google's Gemini) to generate draft replies, sends an interactive notification to a Microsoft Teams channel for approval, and sends the email upon approval.
 
 Features
@@ -135,27 +135,6 @@ Activate Workflows:
 Activate both workflows using the toggle switch at the top of the screen.
 
 Your automation is now live!
-
-How It Works
-The system is split into two parts to handle the asynchronous nature of a human approval step.
-
-Workflow 1: Draft & Alert
-
-An Outlook Trigger fires when a new email arrives.
-
-The AI Agent (using Gemini) reads the email and generates a reply.
-
-An HTTP Request node creates a draft of this reply in Outlook.
-
-A Teams node sends an Adaptive Card with the draft and two buttons ("Accept & Send", "Edit in Outlook") to a specified channel.
-
-Workflow 2: Send on Approval
-
-A Webhook node listens for incoming requests.
-
-When the "Accept & Send" button is clicked in Teams, it sends the draftId to this webhook URL, triggering the workflow.
-
-An HTTP Request node uses the draftId to call the Microsoft Graph API's /send endpoint, sending the email.
 
 Workflows
 1. Outlook_Email_Draft_Teams_Alert.json
@@ -451,7 +430,7 @@ services:
 
       # --- RECOMMENDED SETTINGS ---
       - GENERIC_TIMEZONE=Asia/Dhaka
-      
+
       # === INCREASE NODE.JS MEMORY LIMIT ===
       # This allows the n8n process to use up to 4GB of RAM, preventing crashes.
       - NODE_OPTIONS=--max-old-space-size=4096
@@ -492,12 +471,12 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_http_version 1.1;
         proxy_buffering off;
-        
+
         # === PROXY TIMEOUTS ===
         proxy_connect_timeout 300s;
         proxy_read_timeout 300s;
         proxy_send_timeout 300s;
-        
+
         chunked_transfer_encoding off;
     }
 
@@ -514,3 +493,176 @@ server {
         proxy_read_timeout 86400;
     }
 }
+
+
+
+Guide: Generating Microsoft Outlook API Credentials
+To get the Client ID and Client Secret, you need to perform these steps in the Microsoft Azure portal.
+
+Start by logging into: https://portal.azure.com with your Microsoft 365 administrator account.
+
+Step 1: Register a New Application
+In the Azure portal search bar, type Microsoft Entra ID and select it. (This was formerly called Azure Active Directory).
+
+From the left-hand menu, select App registrations.
+
+Click on the + New registration button.
+
+On the "Register an application" page, fill out the form:
+
+Name: Give it a descriptive name, like n8n Email Automation.
+
+Supported account types: Choose the option that best fits your organization. "Accounts in this organizational directory only" is usually the correct choice for a business account.
+
+Redirect URI (Very Important):
+
+Select Web from the dropdown menu.
+
+Go back to the n8n pop-up window in your other tab. Copy the URL from the OAuth Redirect URL field. It should be in the format: https://n8n.yourdomain.com/rest/oauth2-credential/callback
+
+Paste this URL into the text box in Azure.
+
+Click the Register button at the bottom.
+
+Step 2: Get the Client ID
+After the application is created, you will be taken to its "Overview" page.
+
+You will see an Application (client) ID. This is your Client ID.
+
+Click the copy icon next to it and paste it into the Client ID field back in the n8n window.
+
+Step 3: Create the Client Secret
+While still on your app's page in Azure, select Certificates & secrets from the left-hand menu.
+
+Click on + New client secret.
+
+A pane will appear on the right:
+
+Description: Give it a name like n8n_secret.
+
+Expires: For better security, select a duration like 12 months.
+
+Click Add.
+
+THIS IS THE MOST IMPORTANT STEP! A new secret will be created. The Value of the secret will be displayed only once.
+
+Copy the secret Value immediately (NOT the Secret ID). Paste this into the Client Secret field back in the n8n window.
+
+Step 4: Add API Permissions
+You must tell Microsoft what n8n is allowed to do.
+
+From the left-hand menu, select API permissions.
+
+Click on + Add a permission.
+
+Select Microsoft Graph.
+
+Choose Delegated permissions.
+
+Use the search box to find and check the boxes for the following permissions:
+
+Mail.ReadWrite (Allows reading, creating, and updating emails/drafts)
+
+Mail.Send (Allows sending emails on your behalf)
+
+offline_access (Allows n8n to work when you are not logged in)
+
+Click the Add permissions button at the bottom.
+
+Finally, on the API permissions screen, click the Grant admin consent for [Your Organization] button and confirm. This applies the permissions for your users.
+
+Step 5: Finalize the Connection in n8n
+Go back to the n8n window. You should have already pasted the Client ID and Client Secret.
+
+Click the Save button in the top right of the pop-up.
+
+A new Microsoft login window should appear. Log in with the email account you want to automate.
+
+You will be asked to consent to the permissions you just configured in Azure. Click Accept.
+
+If everything was done correctly, the pop-up will close and your credential will be created and selected in the Microsoft Outlook node.
+
+Guide: Building the AI Email Response & Approval Workflow
+Part 1: The "Create & Approve" Workflow
+This workflow will handle the initial email processing and draft creation.
+
+Create a New Workflow
+
+Log in to your n8n instance (e.g., https://n8n.yourdomain.com).
+
+Click "Add workflow" to start with a blank canvas.
+
+The Trigger: On New Email
+
+Click the + button to add the first node.
+
+Search for Microsoft Outlook and select it.
+
+Authentication: Connect your Microsoft account using the credentials you created.
+
+Event: Choose On New Email.
+
+Folder: Select the folder you want to monitor, typically Inbox.
+
+Fetch Test Event: Click this button to pull in a recent email as sample data. This is crucial for the next steps.
+
+The AI Brain: Generate Reply
+
+Add a new node (e.g., Google Gemini or OpenAI).
+
+Authentication: Connect your AI provider account by providing your API key.
+
+Model: Select a model, such as gemini-1.5-flash or gpt-4o.
+
+Prompt: In the text field, write a prompt for the AI. Use expressions to pull data from the trigger node. Example:
+
+You are a professional and helpful business assistant. Please read the following email and write a clear, concise, and polite draft reply.
+
+Original Email Subject: {{ $nodes["Microsoft Outlook Trigger"].json.subject }} Original Email From: {{ $nodes["Microsoft Outlook Trigger"].json.from.emailAddress.name }} <{{ $nodes["Microsoft Outlook Trigger"].json.from.emailAddress.address }}> Original Email Content:
+{{ $node["Get Email Body"].json.body.content }}
+Draft your reply below:
+
+The Action: Create a Draft Email
+
+Add an HTTP Request node.
+
+Method: POST
+
+URL: https://graph.microsoft.com/v1.0/me/messages/{{$node["Microsoft Outlook Trigger"].json.id}}/createReply
+
+Body: Configure a JSON body to set the contentType to HTML and the content to the output from your AI node.
+
+The Final Step: Send Approval Request to Teams
+
+Add a Microsoft Teams node.
+
+Resource: Adaptive Card.
+
+JSON: Paste the Adaptive Card JSON from the main README.md file. This card will contain the draft and the approval buttons.
+
+Activate and Save your workflow!
+
+Part 2: The "Send Approved Email" Workflow
+This workflow is much simpler. It waits for the manager's action from Teams.
+
+Create a Second Workflow
+
+Go back to the main n8n dashboard and click "Add workflow".
+
+The Trigger: Webhook
+
+Add a Webhook node. This will create a unique URL.
+
+This URL is what the "Accept & Send" button in Teams will call.
+
+The Action: Send the Draft
+
+Add an HTTP Request node after the trigger.
+
+Authentication: Use the same Microsoft credentials.
+
+Method: POST.
+
+URL: Use an expression to target the send endpoint with the Draft ID received by the webhook: https://graph.microsoft.com/v1.0/me/messages/{{$json.body.draftId}}/send
+
+Activate and Save this workflow. Your two-part automation is now complete!
